@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from torchvision import datasets, transforms, models
 import time
 import json
+import os
 from sys import exit
 
 import argparse
@@ -77,25 +78,29 @@ def load_data(data_dir):
         'test': torch.utils.data.DataLoader(image_datasets['test'], batch_size=32),
     }
 
-    return loaders
+    return loaders, image_datasets
 
 
 def save_checkpoint(checkpoint_path, checkpoint, model, optimizer):
     checkpoint['optimizer_state_dict'] = optimizer.state_dict()
     checkpoint['model_state_dict'] = model.state_dict()
-    torch.save(checkpoint, checkpoint_path + 'model.pth')
+    if not os.path.exists(checkpoint_path):
+        os.makedirs(checkpoint_path)
+    torch.save(checkpoint, checkpoint_path + '/model.pth')
 
 
-def load_model(model_str, learning_rate, hidden_units):
+def load_model(model_str, learning_rate, hidden_units, verbose=False):
     try:
         momentum = 0
-        model = getattr(models, model_str)()
+        model = getattr(models, model_str)(pretrained=True)
         in_features = model.classifier[0].in_features
         for param in model.parameters():
             param.requires_grad = False
         create_classifier(model, hidden_layers=hidden_units)
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.SGD(model.classifier.parameters(), lr=learning_rate, momentum=momentum)
+        if verbose:
+            print(model)
         return model, criterion, optimizer, in_features, momentum
     except:
         exit("Error! Pre-trained model doesn't exists. Finishing...")
@@ -144,6 +149,7 @@ def train(model, trainloader, testloader, criterion, optimizer, save_dir, checkp
                     print("Saving model as best at epoch: {}/{}. From ({:.3f} to {:.3f}) as test loss"
                           .format(e + 1, epochs, minimum_validation_loss, test_loss))
                     save_checkpoint(save_dir, checkpoint_base, optimizer=optimizer, model=model)
+                    minimum_validation_loss = test_loss
 
                 running_loss = 0
                 model.train()
@@ -177,24 +183,27 @@ def main():
     parser = argparse.ArgumentParser(description='Train a new network transfer-learning based')
 
     parser.add_argument('data_dir', type=str, help='Root data directory with Image Dataset, it must contain train, '
-                                                   'test and valid directories', required=True)
+                                                   'test and valid directories')
     parser.add_argument('--save_dir', type=str, help='Save directory for the checkpoints', default='./')
     parser.add_argument('--arch', type=str, help='Transfer learning architecture', default='vgg16')
-    parser.add_argument('--learning_rate', type=float, help='Learning rate', default=0.001)
+    parser.add_argument('--learning_rate', type=float, help='Learning rate', default=0.01)
     parser.add_argument('--hidden_units',
                         type=lambda s: [int(item) for item in s.split(',')],
-                        help='Hidden units, comma separated. Example: --hidden-units 4096,4096,200',
-                        default="4096,4096,200")
+                        help='Hidden units, comma separated. Example: --hidden-units 4096,4096',
+                        default="4096,4096")
     parser.add_argument('--epochs', type=int, help='Epochs', default=10)
-    parser.add_argument('--gpu', type=bool, help='GPU Training if available', default=True)
-    parser.add_argument('--verbose', type=bool, help='Verbose Mode', default=False)
+    parser.add_argument('--gpu', action='store_true', help='GPU Training if available', default=True)
+    parser.add_argument('--verbose', action='store_true', help='Verbose Mode', default=False)
 
     args, _ = parser.parse_known_args()
 
-    loaded_data, cat_names = load_data(args.data_dir)
-    model, criterion, optimizer, in_features, momentum = load_model(args.arch, args.learning_rate, args.hidden_units)
+    if args.data_dir is None:
+        exit("You must provide a root data directory")
 
-    model.class_to_idx = loaded_data['train'].class_to_idx
+    loaded_data, image_datasets = load_data(args.data_dir)
+    model, criterion, optimizer, in_features, momentum = load_model(args.arch, args.learning_rate, args.hidden_units, args.verbose)
+
+    model.class_to_idx = image_datasets['train'].class_to_idx
 
     device = 'cpu'
 
@@ -230,6 +239,8 @@ def main():
           args.epochs, device, print_every,
           train_losses, test_losses)
     test(model, loaded_data['test'], criterion, device)
+
+    exit(0)
 
 
 if __name__ == '__main__':

@@ -46,9 +46,9 @@ def create_classifier(model, hidden_layers):
 
 
 def process_image(image):
-    ''' Scales, crops, and normalizes a PIL image for a PyTorch model,
+    """ Scales, crops, and normalizes a PIL image for a PyTorch model,
         returns an Numpy array
-    '''
+    """
 
     transform_img = transforms.Compose([
         transforms.Resize(255),
@@ -84,9 +84,9 @@ def imshow(image, ax=None, title=None):
     return ax
 
 
-def predict(image_path, model, topk=5):
-    ''' Predict the class (or classes) of an image using a trained deep learning model.
-    '''
+def predict(image_path, model, topk=5, normalized=True):
+    """ Predict the class (or classes) of an image using a trained deep learning model.
+    """
     model.eval()
     image = Image.open(image_path)
     image = process_image(image)
@@ -97,6 +97,9 @@ def predict(image_path, model, topk=5):
     inv_map = {v: k for k, v in model.class_to_idx.items()}
     top_p = top_p.tolist()[0]
     top_class = [inv_map[i] for i in top_class.tolist()[0]]
+    if normalized:
+        total = np.sum(top_p)
+        top_p = top_p / total
     return top_p, top_class
 
 
@@ -107,14 +110,11 @@ def load_checkpoint(path, gpu):
     for params in model.parameters():
         params.requires_grad = False
     create_classifier(model, checkpoint['hidden_layers'])
-    # classifier = Classifier(checkpoint['input_size'], checkpoint['output_size'], checkpoint['hidden_layers'])
-    # model.classifier = classifier
     model.load_state_dict(checkpoint['model_state_dict'])
+    model.class_to_idx = checkpoint['class_to_idx']
     optimizer = optim.SGD(model.classifier.parameters(), lr=checkpoint['learning_rate'],
                           momentum=checkpoint['momentum'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-
-    device = 'cpu'
 
     if gpu:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -124,34 +124,40 @@ def load_checkpoint(path, gpu):
     else:
         model.to('cpu')
 
-    model.to(device)
     return model, optimizer
 
 
-def class_mapping(probs, classes, categories):
+def class_mapping(probs, classes, categories, percentage=False):
     mapped = [categories[i] for i in classes]
-    return [mapped, probs]
+    dictionary = {}
+    for i in range(len(mapped)):
+        rounded = round(probs[i], 2)
+        dictionary[mapped[i]] = rounded * 100 if percentage else rounded
+    return dictionary
 
 
 def main():
     parser = argparse.ArgumentParser(description='Train a new network transfer-learning based')
 
-    parser.add_argument('image_path', type=str, help='Image path for prediction', required=True)
-    parser.add_argument('checkpoint', type=str, help='Model path trained checkpoint', required=True)
+    parser.add_argument('image_path', type=str, help='Image path for prediction')
+    parser.add_argument('checkpoint', type=str, help='Model path trained checkpoint')
     parser.add_argument('--category_names', type=str, help='Json Mapping of cat_names', default='cat_to_name.json')
-    parser.add_argument('--top_k', type=int, help='Learning rate', default=5)
-    parser.add_argument('--gpu', type=bool, help='GPU Training if available', default=True)
-    parser.add_argument('--verbose', type=bool, help='Verbose Mode', default=False)
+    parser.add_argument('--top_k', type=int, help='Number of top results', default=5)
+    parser.add_argument('--gpu', action='store_true', help='GPU Training if available', default=True)
+    parser.add_argument('--normalized', action='store_true', help='Normalized results 0 to 1 based', default=True)
+    parser.add_argument('--percentage', action='store_true', help='Normalized and % values', default=False)
 
     args, _ = parser.parse_known_args()
 
-    model, optimizer = load_checkpoint(args.image_path, args.gpu)
-    probs, classes = predict(args.image_path, model, topk=args.top_k)
+    model, optimizer = load_checkpoint(args.checkpoint, args.gpu)
+    probs, classes = predict(args.image_path, model, topk=args.top_k, normalized=args.normalized)
 
     with open(args.category_names, 'r') as f:
         cat_to_name = json.load(f)
 
-    class_mapping(probs, classes, categories=cat_to_name)
+    print(class_mapping(probs, classes, categories=cat_to_name, percentage=args.percentage))
+
+    exit(0)
 
 
 if __name__ == '__main__':
