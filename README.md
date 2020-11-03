@@ -134,3 +134,24 @@ def plot_image(image_path, model, to):
 
 ## Train and predict
 
+The second part of this project is to do a command line application who applies the jupyter notebook
+
+There are two parts, train and predict
+
+#### Train
+
+Train a new network on a data set.
+
+Usage:
+
+```
+
+```
+#### Predict
+
+Predict flower name from an image, along the probability with the name
+
+Usage:
+
+```
+```
