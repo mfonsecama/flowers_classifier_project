@@ -1,4 +1,4 @@
-# Udacity - Flowers Classifier and Command Line Application
+# Flowers Classifier and Command Line Application
 
 ## Notebook
 
