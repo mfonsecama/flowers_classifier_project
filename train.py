@@ -1,37 +1,13 @@
-import matplotlib.pyplot as plt
-import numpy as np
+import argparse
+import os
+from sys import exit
 
+import numpy as np
 import torch
 from torch import nn
 from torch import optim
 from torch.autograd import Variable
-import torch.nn.functional as F
 from torchvision import datasets, transforms, models
-import time
-import json
-import os
-from sys import exit
-
-import argparse
-
-from PIL import Image
-
-
-class Classifier(nn.Module):
-    def __init__(self, input_size, output_size, hidden_layers, drop_p=0.5):
-        super().__init__()
-        self.hidden_layers = nn.ModuleList([nn.Linear(input_size, hidden_layers[0])])
-        layer_sizes = zip(hidden_layers[:-1], hidden_layers[1:])
-        self.hidden_layers.extend([nn.Linear(h1, h2) for h1, h2, in layer_sizes])
-        self.output = nn.Linear(hidden_layers[-1], output_size)
-
-        self.dropout = nn.Dropout(p=drop_p)
-
-    def forward(self, x):
-        for each in self.hidden_layers:
-            x = F.relu(each(x))
-            x = self.dropout(x)
-        return self.output(x)
 
 
 def create_classifier(model, hidden_layers):
@@ -106,7 +82,8 @@ def load_model(model_str, learning_rate, hidden_units, verbose=False):
         exit("Error! Pre-trained model doesn't exists. Finishing...")
 
 
-def train(model, trainloader, testloader, criterion, optimizer, save_dir, checkpoint_base, epochs=5, device='cpu', print_every=40,
+def train(model, trainloader, testloader, criterion, optimizer, save_dir, checkpoint_base, epochs=5, device='cpu',
+          print_every=40,
           train_losses=None,
           test_losses=None):
     if test_losses is None:
@@ -201,7 +178,8 @@ def main():
         exit("You must provide a root data directory")
 
     loaded_data, image_datasets = load_data(args.data_dir)
-    model, criterion, optimizer, in_features, momentum = load_model(args.arch, args.learning_rate, args.hidden_units, args.verbose)
+    model, criterion, optimizer, in_features, momentum = load_model(args.arch, args.learning_rate, args.hidden_units,
+                                                                    args.verbose)
 
     model.class_to_idx = image_datasets['train'].class_to_idx
 
