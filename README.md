@@ -145,6 +145,27 @@ Train a new network on a data set.
 Usage:
 
 ```
+usage: train.py [-h] [--save_dir SAVE_DIR] [--arch ARCH]
+                [--learning_rate LEARNING_RATE] [--hidden_units HIDDEN_UNITS]
+                [--epochs EPOCHS] [--gpu] [--verbose]
+                data_dir
+Train a new network transfer-learning based
+positional arguments:
+  data_dir              Root data directory with Image Dataset, it must
+                        contain train, test and valid directories
+optional arguments:
+  -h, --help            show this help message and exit
+  --save_dir SAVE_DIR   Save directory for the checkpoints
+  --arch ARCH           Transfer learning architecture
+  --learning_rate LEARNING_RATE
+                        Learning rate
+  --hidden_units HIDDEN_UNITS
+                        Hidden units, comma separated. Example: --hidden-units
+                        4096,4096
+  --epochs EPOCHS       Epochs
+  --gpu                 GPU Training if available
+  --verbose             Verbose Mode
+Process finished with exit code 0
 
 ```
 #### Predict
@@ -154,4 +175,21 @@ Predict flower name from an image, along the probability with the name
 Usage:
 
 ```
+usage: predict.py [-h] [--category_names CATEGORY_NAMES] [--top_k TOP_K]
+                  [--gpu] [--normalized] [--percentage]
+                  image_path checkpoint
+Predict an image with a model
+positional arguments:
+  image_path            Image path for prediction
+  checkpoint            Model path trained checkpoint
+optional arguments:
+  -h, --help            show this help message and exit
+  --category_names CATEGORY_NAMES
+                        Json Mapping of cat_names
+  --top_k TOP_K         Number of top results
+  --gpu                 GPU Training if available
+  --normalized          Normalized results 0 to 1 based
+  --percentage          Normalized and percentage values
+Process finished with exit code 0
+
 ```
