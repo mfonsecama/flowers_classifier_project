@@ -115,7 +115,7 @@ def class_mapping(probs, classes, categories, percentage=False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Train a new network transfer-learning based')
+    parser = argparse.ArgumentParser(description='Predict an image with a model')
 
     parser.add_argument('image_path', type=str, help='Image path for prediction')
     parser.add_argument('checkpoint', type=str, help='Model path trained checkpoint')
@@ -123,7 +123,7 @@ def main():
     parser.add_argument('--top_k', type=int, help='Number of top results', default=5)
     parser.add_argument('--gpu', action='store_true', help='GPU Training if available', default=True)
     parser.add_argument('--normalized', action='store_true', help='Normalized results 0 to 1 based', default=True)
-    parser.add_argument('--percentage', action='store_true', help='Normalized and % values', default=False)
+    parser.add_argument('--percentage', action='store_true', help='Normalized and percentage values', default=False)
 
     args, _ = parser.parse_known_args()
 
